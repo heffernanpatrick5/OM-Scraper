@@ -335,46 +335,23 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ── API Key — read from Streamlit Secrets / environment only ──────────────────
+api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown("## ⚡ Data Center OM Extractor")
 st.markdown("Extract structured fields from data center offering memorandums using AI.")
 st.divider()
 
-# ── Sidebar — Configuration ───────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("### ⚙️ Configuration")
+# ── Deal Type Toggle ──────────────────────────────────────────────────────────
+deal_type = st.radio(
+    "Deal Type",
+    options=["Stabilized", "Powered Land / Development"],
+    horizontal=True,
+    help="Determines which fields are extracted.",
+)
 
-    api_key = st.text_input(
-        "Anthropic API Key",
-        type="password",
-        value=os.environ.get("ANTHROPIC_API_KEY", ""),
-        help="Get your key at console.anthropic.com",
-    )
-
-    st.markdown("---")
-    st.markdown("### 🏗️ Deal Type")
-    deal_type = st.radio(
-        "Select the asset type:",
-        options=["Stabilized", "Powered Land / Development"],
-        help="Determines which fields are extracted.",
-    )
-
-    st.markdown("---")
-    st.markdown("### 📋 Fields to Extract")
-    if deal_type == "Powered Land / Development":
-        all_fields = SHARED_FIELDS + POWERED_LAND_FIELDS
-    else:
-        all_fields = SHARED_FIELDS + STABILIZED_FIELDS
-
-    st.caption(f"{len(all_fields)} fields • {len(SHARED_FIELDS)} shared + "
-               f"{len(all_fields) - len(SHARED_FIELDS)} {deal_type.split('/')[0].strip()}-specific")
-
-    with st.expander("View all fields"):
-        for f in all_fields:
-            st.caption(f"• {format_field_name(f)}")
-
-    st.markdown("---")
-    st.caption("Model: claude-opus-4-6  \nHybrid text + vision extraction")
+st.markdown("")
 
 # ── Main — Upload ─────────────────────────────────────────────────────────────
 uploaded_file = st.file_uploader(
@@ -392,7 +369,7 @@ if uploaded_file:
     st.divider()
 
     if not api_key:
-        st.warning("⚠️ Enter your Anthropic API key in the sidebar to continue.")
+        st.error("⚠️ ANTHROPIC_API_KEY is not set. Add it to Streamlit Secrets.")
     else:
         if st.button("⚡ Extract Fields", type="primary", use_container_width=True):
 
@@ -462,7 +439,8 @@ if "result" in st.session_state:
 
     # ── Tab 1: Field Table ──
     with tab1:
-        if deal_type == "Powered Land / Development":
+        saved_deal_type = st.session_state.get("deal_type", "Stabilized")
+        if saved_deal_type == "Powered Land / Development":
             sections = {
                 "Shared Fields": SHARED_FIELDS,
                 "Powered Land / Development Fields": POWERED_LAND_FIELDS,
